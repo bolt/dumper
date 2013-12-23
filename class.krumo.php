@@ -438,7 +438,7 @@ class Krumo {
      * @access public
      * @static
      */
-    public static function dump($data, $capture = '')
+    public static function dump($data, $capture = false)
     {
         // If we're capturing call dump() with just data and capture the output
         if ($capture === KRUMO_CAPTURE) {
@@ -1456,24 +1456,27 @@ class Krumo {
 *
 * @see Krumo::dump()
 */
-function krumo()
+function krumo($data, $capture = null)
 {
-    $_ = func_get_args();
+    if ($capture) {
+        $result = call_user_func(array('krumo', 'dump'), $data, KRUMO_CAPTURE);
+        return $result;
+    } else {
+        call_user_func(array('krumo', 'dump'), $data);
+    }
 
-    return call_user_func_array(array('krumo', 'dump'), $_);
+
+
 }
 
-function k()
+function k($data, $capture = null)
 {
-    $_ = func_get_args();
-
-    return call_user_func_array(array('krumo', 'dump'), $_);
+    return krumo($data, $capture);
 }
 
-function kd()
+function kd($data)
 {
-    $_ = func_get_args();
-    call_user_func_array(array('krumo', 'dump'), $_);
+    call_user_func(array('krumo', 'dump'), $data);
 
     exit();
 }
