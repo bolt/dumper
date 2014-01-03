@@ -1,6 +1,6 @@
 <?PHP
 
-include("../../class.krumo.php");
+include("../../class.dumper.php");
 
 $fp = fopen(__FILE__,"r");
 
@@ -23,25 +23,25 @@ $a = array(
 );
 
 if (isset($_GET['short'])) {
-	Krumo::$expand_all = 1;
+	Dumper::$expand_all = 1;
 	kd($a);
 }
 
-print "<h2>krumo capture</h2>\n";
+print "<h2>Dumper capture</h2>\n";
 $str = k(array('foo' => 'bar'),KRUMO_CAPTURE);
 print $str;
 
-print "<h2>krumo</h2>\n";
+print "<h2>Dumper</h2>\n";
 k(array('likes','kittens','and','dogs'));
 
-print "<h2>krumo passing multiple args</h2>\n";
+print "<h2>Dumper passing multiple args</h2>\n";
 k('likes','kittens','and','dogs');
 
-print "<h2>krumo + die()</h2>\n";
+print "<h2>Dumper + die()</h2>\n";
 kd($a);
 print "If you see this something is broken";
 
-$k = new krumo;
+$k = new Dumper;
 
 class bar
 {

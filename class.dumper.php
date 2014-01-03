@@ -743,48 +743,30 @@ class Dumper {
         }
 
         $css = '';
-        $skin = Dumper::_config('skin', 'selected', 'stylish');
 
         // custom selected skin
-        $rel_css_file = "skins/{$skin}/skin.css";
-        $css_file = DUMPER_DIR . $rel_css_file;
+        $css_file = DUMPER_DIR . "assets/skin.min.css";
         if (is_readable($css_file)) {
             $css = join(file($css_file));
+        } else {
+            $css = "/* Missing CSS file dumper.min.css */\n";
         }
 
-        // default skin
-        if (!$css && ($skin != 'default')) {
-            $skin         = 'stylish';
-            $rel_css_file = "skins/$skin/skin.css";
-            $css_file     = DUMPER_DIR . $rel_css_file;
-            $css          = join(file($css_file));
-        }
 
         // print
         if ($_css = $css != '') {
-            // See if there is a CSS path in the config
-            $relative_krumo_path = Dumper::calculate_relative_path(__FILE__,true);
-            $css_url = Dumper::_config('css', 'url', $relative_krumo_path);
-
-            // Default to /krumo/ if nothing is found in the config
-            $css_url || $css_url = "/krumo/";
-            $css_url = rtrim($css_url, '/');
-
-            // fix the urls
-            $css_url = "$css_url/skins/{$skin}/";
-            $css     = preg_replace('~%url%~Uis', $css_url, $css);
 
             // the CSS
-            print "<!-- Using Dumper Skin: \"$skin\" $rel_css_file -->\n";
+            print "<!-- Dumper - CSS begin -->\n";
             print "<style type=\"text/css\">\n";
             print trim($css) . "\n";
             print "</style>\n";
-            print "<!-- Dumper - CSS -->\n";
+            print "<!-- Dumper - CSS end->\n";
 
             // the JS
-            print "<script type=\"text/javascript\">\n";
+            print "<!-- Dumper - JavaScript start -->\n<script type=\"text/javascript\">\n";
 
-            $js_file = DUMPER_DIR . "dumper.min.js";
+            $js_file = DUMPER_DIR . "assets/dumper.min.js";
             if (is_readable($js_file)) {
                 $js_text = join(file($js_file));
             } else {
@@ -792,7 +774,7 @@ class Dumper {
             }
 
             print "$js_text</script>\n";
-            print "<!-- Dumper - JavaScript -->\n";
+            print "<!-- Dumper - JavaScript end -->\n";
         }
 
         return $_css;
@@ -851,15 +833,9 @@ class Dumper {
         if ($has_white_space) {
             // Convert the white space to unicode underbars to visualize it
             $name  = preg_replace("/\s/","&#9251;",$name);
-            $title = "Note: Key contains white space";
-            $icon  = Dumper::get_icon("information",$title);
-
-            $ret = $name . $icon;
-        } else {
-            $ret = $name;
         }
 
-        return $ret;
+        return $name;
     }
 
 

@@ -1,6 +1,6 @@
 <?php
 
-require('../../class.krumo.php');
+require('../../class.dumper.php');
 
 class A
 {
@@ -14,5 +14,5 @@ $x->b->b = new A();
 $x->b->c = new A();
 $x->b->c->b = new A();
 
-krumo($x);
+Dumper::dump($x);
 

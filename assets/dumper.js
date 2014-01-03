@@ -1,3 +1,4 @@
+"use strict";
 
 /////////////////////////////////////////////////////////////////////////////
 
@@ -16,7 +17,7 @@ function dumper() {
  * @param string className
  * @return void
  */
-dumper.reclass = function(el, className) {
+dumper.reclass = function (el, className) {
     if (el.className.indexOf(className) < 0) {
         el.className += (' ' + className);
     }
