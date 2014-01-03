@@ -1,46 +1,48 @@
 <?php
 /**
-* Krumo: Structured information display solution
-*
-* Krumo is a debugging tool (PHP5 only), which displays structured information
-* about any PHP variable. It is a nice replacement for print_r() or var_dump()
-* which are used by a lot of PHP developers.
-*
-* @original author Kaloyan K. Tsvetkov <kaloyan@kaloyan.info>
-* @license http://opensource.org/licenses/lgpl-license.php GNU Lesser General Public License Version 2.1
-*
-* https://github.com/oodle/krumo
-*/
+ * Dumper: Structured information display solution
+ *
+ * Dumper is a debugging tool, which displays structured information
+ * about any PHP variable. It is a less ugly replacement for print_r() or var_dump()
+ *
+ * Repository: https://github.com/bolt/dumper
+ *
+ * forked from Krumo:
+ * @original author Kaloyan K. Tsvetkov <kaloyan@kaloyan.info>
+ * @license http://opensource.org/licenses/lgpl-license.php GNU Lesser General Public License Version 2.1
+ * @see https://github.com/oodle/krumo
+ * @see http://sourceforge.net/projects/krumo
+ *
+ */
 
 //////////////////////////////////////////////////////////////////////////////
 
 /**
-* Set the KRUMO_DIR constant up with the absolute path to Krumo files. If it is
-* not defined, include_path will be used. Set KRUMO_DIR only if any other module
-* or application has not already set it up.
-*/
-if (!defined('KRUMO_DIR')) {
-    define('KRUMO_DIR', dirname(__FILE__) . DIRECTORY_SEPARATOR);
+ * Set the DUMPER_DIR constant up with the absolute path to Krumo files. If it is
+ * not defined, include_path will be used. Set DUMPER_DIR only if any other module
+ * or application has not already set it up.
+ */
+if (!defined('DUMPER_DIR')) {
+    define('DUMPER_DIR', dirname(__FILE__) . DIRECTORY_SEPARATOR);
 }
 
-if (!defined('KRUMO_CAPTURE')) {
-    define('KRUMO_CAPTURE','158bafa5-b505-4661-9904-46504e00a5bb');
+if (!defined('DUMPER_CAPTURE')) {
+    define('DUMPER_CAPTURE','ce73a8aec183db86dae59bef1f7c273a61720b34');
 }
 
-//////////////////////////////////////////////////////////////////////////////
 
 /**
-* Krumo API
-*
-* This class stores the Krumo API for rendering and
-* displaying the structured information it is reporting
-*
-* @package Krumo
-*/
-class Krumo {
+ * Dumper API
+ *
+ * This class stores the Dumper API for rendering and
+ * displaying the structured information it is reporting
+ *
+ * @package Krumo
+ */
+class Dumper {
 
     /**
-     * Return Krumo version
+     * Return Dumper version
      *
      * @return string
      * @access public
@@ -48,7 +50,7 @@ class Krumo {
      */
     public static function version()
     {
-        return '0.5.0';
+        return '0.6.0';
     }
 
 
@@ -58,15 +60,62 @@ class Krumo {
      * @access public
      * @static
      */
-    public static function backtrace()
+    public static function backtrace($max = 15, $capture= false)
     {
         // disabled ?
         if (!self::_debug()) {
             return false;
         }
 
+        $dump = array();
+        $filenames = array();
+
+        foreach (debug_backtrace() as $line) {
+
+            // Keep the 'max' in check..
+            if ($max-- < 1) {
+                break;
+            }
+            // Get a descriptive 'name' for the function..
+            $name = sprintf("%s(%s)",
+                Dumper::trimString($line['function'], 40),
+                !empty($line['args']) ? count($line['args']) : ""
+            );
+            if (!empty($line['type'])) {
+                $name = sprintf("%s&nbsp;%s&nbsp;%s",
+                    Dumper::trimString($line['class'], 40),
+                    $line['type'],
+                    $name
+                );
+            }
+            $thisdump = array();
+            $thisdump['file'] = $line['file'];
+            if (!empty($line['file'])) {
+                $filenames[] = $line['file'];
+            }
+            if (!empty($line['line'])) {
+                $thisdump['line'] = $line['line'];
+            }
+            if (!empty($line['args'])) {
+                $thisdump['args'] = $line['args'];
+            }
+            $dump[$name] = $thisdump;
+        }
+
+        // get the common prefix for all the used filenames..
+        $commonprefix = Dumper::commonPrefix($filenames);
+
+        // iterate over the results, cleaning up the filenames..
+        foreach($dump as $key => $line) {
+            $dump[$key]['file'] = str_replace($commonprefix, "…" . DIRECTORY_SEPARATOR, $dump[$key]['file']);
+        }
+
         // render it
-        return Krumo::dump(debug_backtrace());
+        if (!$capture) {
+            Dumper::dump($dump);
+        } else {
+            return Dumper::dump($dump, DUMPER_CAPTURE);
+        }
     }
 
     /**
@@ -78,15 +127,15 @@ class Krumo {
     public static function classes()
     {
         // disabled ?
-        if (!Krumo::_debug()) {
+        if (!Dumper::_debug()) {
             return false;
         }
 
-        print "<div class=\"krumo-title\">\n";
+        print "<div class=\"dumper-title\">\n";
         print "This is a list of all currently declared classes.";
         print "</div>\n";
 
-        return Krumo::dump(get_declared_classes());
+        return Dumper::dump(get_declared_classes());
     }
 
     /**
@@ -98,14 +147,14 @@ class Krumo {
     public static function interfaces()
     {
         // disabled
-        if (!Krumo::_debug()) {
+        if (!Dumper::_debug()) {
             return false;
         }
 
         // render it
-        print "<div class=\"krumo-title\">This is a list of all currently declared interfaces.</div>";
+        print "<div class=\"dumper-title\">This is a list of all currently declared interfaces.</div>";
 
-        return Krumo::dump(get_declared_interfaces());
+        return Dumper::dump(get_declared_interfaces());
     }
 
     /**
@@ -117,14 +166,14 @@ class Krumo {
     public static function includes()
     {
         // disabled
-        if (!Krumo::_debug()) {
+        if (!Dumper::_debug()) {
             return false;
         }
 
         // render it
-        print "<div class=\"krumo-title\">This is a list of all currently included (or required) files.</div>";
+        print "<div class=\"dumper-title\">This is a list of all currently included (or required) files.</div>";
 
-        return Krumo::dump(get_included_files());
+        return Dumper::dump(get_included_files());
     }
 
     /**
@@ -136,14 +185,14 @@ class Krumo {
     public static function functions()
     {
         // disabled
-        if (!Krumo::_debug()) {
+        if (!Dumper::_debug()) {
             return false;
         }
 
         // render it
-        print "<div class=\"krumo-title\">This is a list of all currently declared functions.</div>";
+        print "<div class=\"dumper-title\">This is a list of all currently declared functions.</div>";
 
-        return Krumo::dump(get_defined_functions());
+        return Dumper::dump(get_defined_functions());
     }
 
     /**
@@ -155,14 +204,14 @@ class Krumo {
     public static function defines()
     {
         // disabled
-        if (!Krumo::_debug()) {
+        if (!Dumper::_debug()) {
             return false;
         }
 
         // render it
-        print "<div class=\"krumo-title\">This is a list of all currently declared constants (defines).</div>";
+        print "<div class=\"dumper-title\">This is a list of all currently declared constants (defines).</div>";
 
-        return Krumo::dump(get_defined_constants());
+        return Dumper::dump(get_defined_constants());
     }
 
     /**
@@ -174,14 +223,14 @@ class Krumo {
     public static function extensions()
     {
         // disabled
-        if (!Krumo::_debug()) {
+        if (!Dumper::_debug()) {
             return false;
         }
 
         // render it
-        print "<div class=\"krumo-title\">This is a list of all currently loaded PHP extensions.</div>";
+        print "<div class=\"dumper-title\">This is a list of all currently loaded PHP extensions.</div>";
 
-        return Krumo::dump(get_loaded_extensions());
+        return Dumper::dump(get_loaded_extensions());
     }
 
     /**
@@ -193,14 +242,14 @@ class Krumo {
     public static function headers()
     {
         // disabled
-        if (!Krumo::_debug()) {
+        if (!Dumper::_debug()) {
             return false;
         }
 
         // render it
-        print "<div class=\"krumo-title\">This is a list of all HTTP request headers.</div>";
+        print "<div class=\"dumper-title\">This is a list of all HTTP request headers.</div>";
 
-        return Krumo::dump(getAllHeaders());
+        return Dumper::dump(getAllHeaders());
     }
 
     /**
@@ -212,7 +261,7 @@ class Krumo {
     public static function phpini()
     {
         // disabled
-        if (!Krumo::_debug()) {
+        if (!Dumper::_debug()) {
             return false;
         }
 
@@ -221,11 +270,11 @@ class Krumo {
         }
 
         // render it
-        print "<div class=\"krumo-title\">";
+        print "<div class=\"dumper-title\">";
         print "This is a list of the configuration settings read from <code><b>" . get_cfg_var('cfg_file_path') . "</b></code>.";
         print "</div>";
 
-        return Krumo::dump(parse_ini_file(get_cfg_var('cfg_file_path'), true));
+        return Dumper::dump(parse_ini_file(get_cfg_var('cfg_file_path'), true));
     }
 
     /**
@@ -237,14 +286,14 @@ class Krumo {
     public static function conf()
     {
         // disabled
-        if (!Krumo::_debug()) {
+        if (!Dumper::_debug()) {
             return false;
         }
 
         // render it
-        print "<div class=\"krumo-title\">This is a list of all your configuration settings.</div>";
+        print "<div class=\"dumper-title\">This is a list of all your configuration settings.</div>";
 
-        return Krumo::dump(ini_get_all());
+        return Dumper::dump(ini_get_all());
     }
 
     /**
@@ -256,14 +305,14 @@ class Krumo {
     public static function path()
     {
         // disabled
-        if (!Krumo::_debug()) {
+        if (!Dumper::_debug()) {
             return false;
         }
 
         // render it
-        print "<div class=\"krumo-title\"> This is a list of the specified directories under your <code><b>include_path</b></code> option.</div>";
+        print "<div class=\"dumper-title\"> This is a list of the specified directories under your <code><b>include_path</b></code> option.</div>";
 
-        return Krumo::dump(explode(PATH_SEPARATOR, ini_get('include_path')));
+        return Dumper::dump(explode(PATH_SEPARATOR, ini_get('include_path')));
     }
 
     /**
@@ -275,14 +324,14 @@ class Krumo {
     public static function request()
     {
         // disabled
-        if (!Krumo::_debug()) {
+        if (!Dumper::_debug()) {
             return false;
         }
 
         // render it
-        print "<div class=\"krumo-title\">This is a list of all the values from the <code><b>\$_REQUEST</b></code> array.</div>";
+        print "<div class=\"dumper-title\">This is a list of all the values from the <code><b>\$_REQUEST</b></code> array.</div>";
 
-        return Krumo::dump($_REQUEST);
+        return Dumper::dump($_REQUEST);
     }
 
     /**
@@ -294,14 +343,14 @@ class Krumo {
     public static function get()
     {
         // disabled
-        if (!Krumo::_debug()) {
+        if (!Dumper::_debug()) {
             return false;
         }
 
         // render it
-        print "<div class=\"krumo-title\">This is a list of all the values from the <code><b>\$_GET</b></code> array.</div>";
+        print "<div class=\"dumper-title\">This is a list of all the values from the <code><b>\$_GET</b></code> array.</div>";
 
-        return Krumo::dump($_GET);
+        return Dumper::dump($_GET);
     }
 
     /**
@@ -313,14 +362,14 @@ class Krumo {
     public static function post()
     {
         // disabled
-        if (!Krumo::_debug()) {
+        if (!Dumper::_debug()) {
             return false;
         }
 
         // render it
-        print "<div class=\"krumo-title\">This is a list of all the values from the <code><b>\$_POST</b></code> array.</div>";
+        print "<div class=\"dumper-title\">This is a list of all the values from the <code><b>\$_POST</b></code> array.</div>";
 
-        return Krumo::dump($_POST);
+        return Dumper::dump($_POST);
     }
 
     /**
@@ -332,14 +381,14 @@ class Krumo {
     public static function server()
     {
         // disabled
-        if (!Krumo::_debug()) {
+        if (!Dumper::_debug()) {
             return false;
         }
 
         // render it
-        print "<div class=\"krumo-title\">This is a list of all the values from the <code><b>\$_SERVER</b></code> array.</div>";
+        print "<div class=\"dumper-title\">This is a list of all the values from the <code><b>\$_SERVER</b></code> array.</div>";
 
-        return Krumo::dump($_SERVER);
+        return Dumper::dump($_SERVER);
     }
 
     /**
@@ -351,14 +400,14 @@ class Krumo {
     public static function cookie()
     {
         // disabled
-        if (!Krumo::_debug()) {
+        if (!Dumper::_debug()) {
             return false;
         }
 
         // render it
-        print "<div class=\"krumo-title\">This is a list of all the values from the <code><b>\$_COOKIE</b></code> array.</div>";
+        print "<div class=\"dumper-title\">This is a list of all the values from the <code><b>\$_COOKIE</b></code> array.</div>";
 
-        return Krumo::dump($_COOKIE);
+        return Dumper::dump($_COOKIE);
     }
 
     /**
@@ -370,14 +419,14 @@ class Krumo {
     public static function env()
     {
         // disabled
-        if (!Krumo::_debug()) {
+        if (!Dumper::_debug()) {
             return false;
         }
 
         // render it
-        print "<div class=\"krumo-title\">This is a list of all the values from the <code><b>\$_ENV</b></code> array.</div>";
+        print "<div class=\"dumper-title\">This is a list of all the values from the <code><b>\$_ENV</b></code> array.</div>";
 
-        return Krumo::dump($_ENV);
+        return Dumper::dump($_ENV);
     }
 
     /**
@@ -389,14 +438,14 @@ class Krumo {
     public static function session()
     {
         // disabled
-        if (!Krumo::_debug()) {
+        if (!Dumper::_debug()) {
             return false;
         }
 
         // render it
-        print "<div class=\"krumo-title\">This is a list of all the values from the <code><b>\$_SESSION</b></code> array.</div>";
+        print "<div class=\"dumper-title\">This is a list of all the values from the <code><b>\$_SESSION</b></code> array.</div>";
 
-        return Krumo::dump($_SESSION);
+        return Dumper::dump($_SESSION);
     }
 
     /**
@@ -410,7 +459,7 @@ class Krumo {
     public static function ini($ini_file)
     {
         // disabled
-        if (!Krumo::_debug()) {
+        if (!Dumper::_debug()) {
             return false;
         }
 
@@ -424,10 +473,10 @@ class Krumo {
             $ini_file = realpath($ini_file);
         }
 
-        print "<div class=\"krumo-title\">";
+        print "<div class=\"dumper-title\">";
         print "This is a list of all the values from the <code><b>" . $ini_file . "</b></code> INI file.</div>";
 
-        return Krumo::dump($_);
+        return Dumper::dump($_);
     }
 
 
@@ -441,10 +490,10 @@ class Krumo {
     public static function dump($data, $capture = false)
     {
         // If we're capturing call dump() with just data and capture the output
-        if ($capture === KRUMO_CAPTURE) {
+        if ($capture === DUMPER_CAPTURE) {
             ob_start();
 
-            Krumo::dump($data);
+            Dumper::dump($data);
 
             $str = ob_get_clean();
 
@@ -458,7 +507,7 @@ class Krumo {
         }
 
         // disabled
-        if (!Krumo::_debug()) {
+        if (!Dumper::_debug()) {
             return false;
         }
 
@@ -466,7 +515,7 @@ class Krumo {
         if (func_num_args() > 1) {
             $_ = func_get_args();
             foreach ($_ as $d) {
-                Krumo::dump($d);
+                Dumper::dump($d);
             }
 
             return;
@@ -482,32 +531,32 @@ class Krumo {
             }
         }
 
-        $showVersion  = Krumo::_config('display', 'show_version', TRUE);
-        $showCallInfo = Krumo::_config('display', 'show_call_info', TRUE);
+        $showVersion  = Dumper::_config('display', 'show_version', TRUE);
+        $showCallInfo = Dumper::_config('display', 'show_call_info', TRUE);
         $krumoUrl     = 'https://github.com/oodle/krumo';
 
         //////////////////////
         // Start HTML header//
         //////////////////////
-        print "<div class=\"krumo-root\">\n";
-        print "\t<ul class=\"krumo-node krumo-first\">\n";
+        print "<div class=\"dumper-root\">\n";
+        print "\t<ul class=\"dumper-node dumper-first\">\n";
 
         // The actual item itself
-        print Krumo::_dump($data);
+        print Dumper::_dump($data);
 
         if ($showVersion || $showCallInfo) {
-            print "\t\t<li class=\"krumo-footnote\" onDblClick=\"toggle_expand_all();\">\n";
+            print "\t\t<li class=\"dumper-footnote\" onDblClick=\"toggle_expand_all();\">\n";
 
             if ($showCallInfo && isset($d['file']) && $d['file']) {
-                print "<span class=\"krumo-call\" style=\"white-space:nowrap;\">";
+                print "<span class=\"dumper-call\" style=\"white-space:nowrap;\">";
                 print "Called from <strong><code>" . $d['file'] . "</code></strong>, ";
                 print "line <strong><code>" . $d['line'] . "</code></strong></span>";
             }
 
             if ($showVersion) {
-                $version = krumo::version();
-                print "<span class=\"krumo-version\" style=\"white-space:nowrap;\">\n";
-                print "<strong class=\"krumo-version-number\">Krumo version $version</strong> | <a href=\"$krumoUrl\" target=\"_blank\">$krumoUrl</a>\n";
+                $version = Dumper::version();
+                print "<span class=\"dumper-version\" style=\"white-space:nowrap;\">\n";
+                print "<strong class=\"dumper-version-number\">Krumo version $version</strong> | <a href=\"$krumoUrl\" target=\"_blank\">$krumoUrl</a>\n";
                 print "</span>\n";
             }
 
@@ -515,17 +564,17 @@ class Krumo {
         }
 
         print "</ul></div>\n";
-        print "<!-- Krumo - HTML -->\n\n";
+        print "<!-- Dumper - HTML -->\n\n";
 
         // Output the CSS and JavaScript AFTER the HTML
-        krumo::_css();
+        Dumper::_css();
         ////////////////////
         // End HTML header//
         ////////////////////
 
         // flee the hive
-        $_recursion_marker = Krumo::_marker();
-        if ($hive =& Krumo::_hive($dummy)) {
+        $_recursion_marker = Dumper::_marker();
+        if ($hive =& Dumper::_hive($dummy)) {
             foreach ($hive as $i => $bee) {
                 if (is_object($bee)) {
                     if (($hash = spl_object_hash($bee)) && isset(self::$objectRecursionProtection[$hash])) {
@@ -541,17 +590,17 @@ class Krumo {
             self::$objectRecursionProtection = NULL;
         }
 
-    // End of dump()
+        // End of dump()
     }
 
 
     /**
-      * Configuration array.
-      */
+     * Configuration array.
+     */
     private static $_config = array();
 
     /**
-     * Returns values from Krumo's configuration
+     * Returns values from Dumper's configuration
      *
      * @param string $group
      * @param string $name
@@ -563,11 +612,11 @@ class Krumo {
      */
     private static function _config($group, $name, $fallback=null)
     {
-        $krumo_ini = KRUMO_DIR . 'krumo.ini';
+        $dumper_ini = DUMPER_DIR . 'dumper.ini';
 
         // The config isn't loaded yet
-        if (empty(self::$_config) && is_readable($krumo_ini)) {
-            self::$_config = (array) parse_ini_file($krumo_ini, true);
+        if (empty(self::$_config) && is_readable($dumper_ini)) {
+            self::$_config = (array) parse_ini_file($dumper_ini, true);
         }
 
         // exists
@@ -626,8 +675,8 @@ class Krumo {
     /**
      * This allows you to uncollapse items programattically. Example:
      *
-     * Krumo::$expand_all = 1;
-     * krumo($my_array);
+     * \Dumper::$expand_all = 1;
+     * \Dumper::dump($my_array);
      */
     public static $expand_all = 0;
 
@@ -641,7 +690,7 @@ class Krumo {
         $cascade = self::$_cascade;
 
         if ($cascade == null) {
-            $cascade = Krumo::_config('display', 'cascade', array());
+            $cascade = Dumper::_config('display', 'cascade', array());
         }
 
         if (isset($cascade[$level])) {
@@ -694,11 +743,11 @@ class Krumo {
         }
 
         $css = '';
-        $skin = Krumo::_config('skin', 'selected', 'stylish');
+        $skin = Dumper::_config('skin', 'selected', 'stylish');
 
         // custom selected skin
         $rel_css_file = "skins/{$skin}/skin.css";
-        $css_file = KRUMO_DIR . $rel_css_file;
+        $css_file = DUMPER_DIR . $rel_css_file;
         if (is_readable($css_file)) {
             $css = join(file($css_file));
         }
@@ -707,15 +756,15 @@ class Krumo {
         if (!$css && ($skin != 'default')) {
             $skin         = 'stylish';
             $rel_css_file = "skins/$skin/skin.css";
-            $css_file     = KRUMO_DIR . $rel_css_file;
+            $css_file     = DUMPER_DIR . $rel_css_file;
             $css          = join(file($css_file));
         }
 
         // print
         if ($_css = $css != '') {
             // See if there is a CSS path in the config
-            $relative_krumo_path = Krumo::calculate_relative_path(__FILE__,true);
-            $css_url = Krumo::_config('css', 'url', $relative_krumo_path);
+            $relative_krumo_path = Dumper::calculate_relative_path(__FILE__,true);
+            $css_url = Dumper::_config('css', 'url', $relative_krumo_path);
 
             // Default to /krumo/ if nothing is found in the config
             $css_url || $css_url = "/krumo/";
@@ -726,24 +775,24 @@ class Krumo {
             $css     = preg_replace('~%url%~Uis', $css_url, $css);
 
             // the CSS
-            print "<!-- Using Krumo Skin: \"$skin\" $rel_css_file -->\n";
+            print "<!-- Using Dumper Skin: \"$skin\" $rel_css_file -->\n";
             print "<style type=\"text/css\">\n";
             print trim($css) . "\n";
             print "</style>\n";
-            print "<!-- Krumo - CSS -->\n";
+            print "<!-- Dumper - CSS -->\n";
 
             // the JS
             print "<script type=\"text/javascript\">\n";
 
-            $js_file = KRUMO_DIR . "krumo.min.js";
+            $js_file = DUMPER_DIR . "dumper.min.js";
             if (is_readable($js_file)) {
                 $js_text = join(file($js_file));
             } else {
-                $js_text = "// Missing JS file krumo.min.js\n";
+                $js_text = "// Missing JS file dumper.min.js\n";
             }
 
             print "$js_text</script>\n";
-            print "<!-- Krumo - JavaScript -->\n";
+            print "<!-- Dumper - JavaScript -->\n";
         }
 
         return $_css;
@@ -759,7 +808,7 @@ class Krumo {
      */
     public static function enable()
     {
-        return true === Krumo::_debug(true);
+        return true === Dumper::_debug(true);
     }
 
     /**
@@ -771,7 +820,7 @@ class Krumo {
      */
     public static function disable()
     {
-        return false === Krumo::_debug(false);
+        return false === Dumper::_debug(false);
     }
 
     /**
@@ -803,7 +852,7 @@ class Krumo {
             // Convert the white space to unicode underbars to visualize it
             $name  = preg_replace("/\s/","&#9251;",$name);
             $title = "Note: Key contains white space";
-            $icon  = Krumo::get_icon("information",$title);
+            $icon  = Dumper::get_icon("information",$title);
 
             $ret = $name . $icon;
         } else {
@@ -826,46 +875,46 @@ class Krumo {
     {
         // Highlight elements that have a space in their name.
         // Spaces are hard to see in the HTML and are hard to troubleshoot
-        $name = Krumo::sanitize_name($name);
+        $name = Dumper::sanitize_name($name);
 
         // object
         if (is_object($data)) {
-            return Krumo::_object($data, $name);
+            return Dumper::_object($data, $name);
         }
 
         // array
         if (is_array($data)) {
-            return Krumo::_array($data, $name);
+            return Dumper::_array($data, $name);
         }
 
         // resource
         if (is_resource($data)) {
-            return Krumo::_resource($data, $name);
+            return Dumper::_resource($data, $name);
         }
 
         // scalar
         if (is_string($data)) {
-            return Krumo::_string($data, $name);
+            return Dumper::_string($data, $name);
         }
 
         // float
         if (is_float($data)) {
-            return Krumo::_float($data, $name);
+            return Dumper::_float($data, $name);
         }
 
         // integer
         if (is_integer($data)) {
-            return Krumo::_integer($data, $name);
+            return Dumper::_integer($data, $name);
         }
 
         // boolean
         if (is_bool($data)) {
-            return Krumo::_boolean($data, $name);
+            return Dumper::_boolean($data, $name);
         }
 
         // null
         if (is_null($data)) {
-            return Krumo::_null($name);
+            return Dumper::_null($name);
         }
     }
 
@@ -881,12 +930,12 @@ class Krumo {
     private static function _null($name)
     {
 
-        $html = '<li class="krumo-child">
-            <div class="krumo-element" onMouseOver="krumo.over(this);" onMouseOut="krumo.out(this);">
-            <a class="krumo-name">%s</a> %s <strong class="krumo-type krumo-null">NULL</strong>
+        $html = '<li class="dumper-child">
+            <div class="dumper-element" onMouseOver="dumper.over(this);" onMouseOut="dumper.out(this);">
+            <a class="dumper-name">%s</a> %s <strong class="dumper-type dumper-null">NULL</strong>
             </div></li>';
 
-        $html = sprintf($html, $name, Krumo::get_separator() );
+        $html = sprintf($html, $name, Dumper::get_separator() );
 
         echo $html;
 
@@ -931,7 +980,7 @@ class Krumo {
         if (!is_null($bee)) {
 
             // stain it
-            $_recursion_marker = Krumo::_marker();
+            $_recursion_marker = Dumper::_marker();
             if (is_object($bee)) {
                 $hash = spl_object_hash($bee);
                 if ($hash && isset(self::$objectRecursionProtection[$hash])) {
@@ -973,7 +1022,7 @@ class Krumo {
 
         // test for references in order to
         // prevent endless recursion loops
-        $_recursion_marker = Krumo::_marker();
+        $_recursion_marker = Dumper::_marker();
 
         if ($_is_object) {
             if (($hash = spl_object_hash($data)) && isset(self::$objectRecursionProtection[$hash])) {
@@ -987,22 +1036,22 @@ class Krumo {
 
         // recursion detected
         if ($_r > 0) {
-            return Krumo::_recursion();
+            return Dumper::_recursion();
         }
 
         // stain it
-        Krumo::_hive($data);
+        Dumper::_hive($data);
 
         // render it
-        $collapsed = Krumo::_isCollapsed(self::$_level, count($data)-1);
+        $collapsed = Dumper::_isCollapsed(self::$_level, count($data)-1);
         if ($collapsed) {
             $collapse_style = 'style="display: none;"';
         } else {
             $collapse_style = '';
         }
 
-        print "<div class=\"krumo-nest\" $collapse_style>";
-        print "<ul class=\"krumo-node\">";
+        print "<div class=\"dumper-nest\" $collapse_style>";
+        print "<ul class=\"dumper-node\">";
 
         // we're descending one level deeper
         self::$_level++;
@@ -1033,7 +1082,7 @@ class Krumo {
 
                 $value = $property->getValue($data);
 
-                Krumo::_dump($value, "<span>$prefix</span>&nbsp;$name");
+                Dumper::_dump($value, "<span>$prefix</span>&nbsp;$name");
                 if ($setAccessible) {
                     $property->setAccessible(false);
                 }
@@ -1052,7 +1101,7 @@ class Krumo {
                 // get real value
                 $v =& $data[$k];
 
-                Krumo::_dump($v,$k);
+                Dumper::_dump($v,$k);
             }
         }
 
@@ -1070,12 +1119,12 @@ class Krumo {
     private static function _recursion()
     {
 
-        $html = '<div class="krumo-nest" style="display:none;">
-            <ul class="krumo-node">
-                <li class="krumo-child">
-                    <div class="krumo-element" onMouseOver="krumo.over(this);" onMouseOut="krumo.out(this);">
-                        <a class="krumo-name">&#8734;</a>
-                        (<em class="krumo-type">Recursion</em>)
+        $html = '<div class="dumper-nest" style="display:none;">
+            <ul class="dumper-node">
+                <li class="dumper-child">
+                    <div class="dumper-element" onMouseOver="dumper.over(this);" onMouseOut="dumper.out(this);">
+                        <a class="dumper-name">&#8734;</a>
+                        (<em class="dumper-type">Recursion</em>)
                     </div>
 
                 </li>
@@ -1100,10 +1149,10 @@ class Krumo {
      */
     private static function _array($data, $name)
     {
-        $config_sort = Krumo::_config('display','sort_arrays',true);
+        $config_sort = Dumper::_config('display','sort_arrays',true);
 
         // If the sort is enabled in the config (default = yes) and the array is assoc (non-numeric)
-        if (sizeof($data) > 1 && $config_sort && Krumo::is_assoc($data)) {
+        if (sizeof($data) > 1 && $config_sort && Dumper::is_assoc($data)) {
             // Copy the array to a temp variable and sort it
             $new = $data;
             ksort($new);
@@ -1120,27 +1169,27 @@ class Krumo {
         }
 
         $childCount = count($data);
-        $collapsed = Krumo::_isCollapsed(self::$_level, count($data));
+        $collapsed = Dumper::_isCollapsed(self::$_level, count($data));
 
         // Setup the CSS classes depending on how many children there are
         if ($childCount > 0 && $collapsed) {
-            $elementClasses = ' krumo-expand';
+            $elementClasses = ' dumper-expand';
         } elseif ($childCount > 0) {
-            $elementClasses = ' krumo-expand krumo-opened';
+            $elementClasses = ' dumper-expand dumper-opened';
         } else {
             $elementClasses = '';
         }
 
-        print "<li class=\"krumo-child\">";
-        print "<div class=\"krumo-element $elementClasses\"";
+        print "<li class=\"dumper-child\">";
+        print "<div class=\"dumper-element $elementClasses\"";
 
         // If there is more than one, make a dropdown
         if (count($data) > 0) {
-            print "onClick=\"krumo.toggle(this);\"";
+            print "onClick=\"dumper.toggle(this);\"";
         }
 
-        print "onMouseOver=\"krumo.over(this);\" onMouseOut=\"krumo.out(this);\">";
-        print "<a class=\"krumo-name\">$name</a> <em class=\"krumo-type\">Array(<strong class=\"krumo-array-length\">";
+        print "onMouseOver=\"dumper.over(this);\" onMouseOut=\"dumper.out(this);\">";
+        print "<a class=\"dumper-name\">$name</a> <em class=\"dumper-type\">arr(<strong class=\"dumper-array-length\">";
         print count($data) . "</strong>)</em>";
 
         if (count($data)>0) {
@@ -1148,20 +1197,20 @@ class Krumo {
         }
 
         if ($sort) {
-            $title = "Array has been sorted prior to display. This is configurable in krumo.ini.";
-            print " - <span title=\"$title\"><strong class=\"krumo-sorted\">Sorted</strong></span>";
+            $title = "Array has been sorted prior to display. This is configurable in dumper.ini.";
+            print " - <span title=\"$title\"><strong class=\"dumper-sorted\">Sorted</strong></span>";
         }
 
         // callback
         if (is_callable($data)) {
             $_ = array_values($data);
-            print "<span class=\"krumo-callback\"> |";
-            print " (<em class=\"krumo-type\">Callback</em>) <strong class=\"krumo-string\">";
+            print "<span class=\"dumper-callback\"> |";
+            print " (<em class=\"dumper-type\">Callback</em>) <strong class=\"dumper-string\">";
 
             if (!is_object($_[0])) {
-                    echo htmlSpecialChars($_[0]);
+                echo htmlSpecialChars($_[0]);
             } else {
-                    echo htmlSpecialChars(get_class($_[0])) . "::";
+                echo htmlSpecialChars(get_class($_[0])) . "::";
             }
 
             echo htmlSpecialChars($_[1]) . "()</strong></span>";
@@ -1170,7 +1219,7 @@ class Krumo {
         print "</div>";
 
         if (count($data)) {
-            Krumo::_vars($data);
+            Dumper::_vars($data);
         }
 
         print "</li>";
@@ -1191,10 +1240,10 @@ class Krumo {
 
         $childCount = count($reflection->getProperties());
 
-        $collapsed = Krumo::_isCollapsed(self::$_level, $childCount);
+        $collapsed = Dumper::_isCollapsed(self::$_level, $childCount);
 
         $class = get_class($data);
-        $dont_traverse = Krumo::_config('dont_traverse', 'objects', array());
+        $dont_traverse = Dumper::_config('dont_traverse', 'objects', array());
 
         // Traverse deeper if we're on level 0, or otherwise if the current class
         // is not in the dont_traverse config setting
@@ -1202,18 +1251,18 @@ class Krumo {
 
         // Setup the CSS classes depending on how many children there are
         if ($childCount > 0 && $collapsed ) {
-            $elementClasses = ' krumo-expand';
+            $elementClasses = 'dumper-expand';
         } elseif ($childCount > 0 && $traverse_this ) {
-            $elementClasses = ' krumo-expand krumo-opened';
+            $elementClasses = ' dumper-expand dumper-opened';
         } else {
             $elementClasses = '';
         }
 
-        $output = sprintf('<li class="krumo-child"> <div class="krumo-element%s"', $elementClasses);
+        $output = sprintf('<li class="dumper-child"> <div class="dumper-element%s"', $elementClasses);
         if (count($data) > 0) {
-            $output .= 'onClick="krumo.toggle(this);"';
+            $output .= 'onClick="dumper.toggle(this);"';
         }
-        $output .= 'onMouseOver="krumo.over(this);" onMouseOut="krumo.out(this);">';
+        $output .= 'onMouseOver="dumper.over(this);" onMouseOut="dumper.out(this);">';
 
         $addendum = '';
         if ($childCount == 0) {
@@ -1222,9 +1271,9 @@ class Krumo {
             $addendum = ' (skipped)';
         }
 
-        $output .= sprintf('<a class="krumo-name"></a> <em class="krumo-type">Object</em> ', $name);
-        $output .= sprintf('%s <strong class="krumo-class">%s</strong>%s</div>',
-            Krumo::get_separator(),
+        $output .= sprintf('<a class="dumper-name"></a> <em class="dumper-type">obj</em> ', $name);
+        $output .= sprintf('%s <strong class="dumper-class">%s</strong>%s</div>',
+            Dumper::get_separator(),
             $class,
             $addendum
         );
@@ -1232,7 +1281,7 @@ class Krumo {
         echo $output;
 
         if ($childCount && $traverse_this) {
-            Krumo::_vars($data);
+            Dumper::_vars($data);
         }
 
         echo '</li>';
@@ -1250,13 +1299,13 @@ class Krumo {
     private static function _resource($data, $name)
     {
 
-        $html = '<li class="krumo-child">
-            <div class="krumo-element" onMouseOver="krumo.over(this);" onMouseOut="krumo.out(this);">
-            <a class="krumo-name">%s</a> <em class="krumo-type">Resource</em>
-            %s<strong class="krumo-resource">%s</strong>
+        $html = '<li class="dumper-child">
+            <div class="dumper-element" onMouseOver="dumper.over(this);" onMouseOut="dumper.out(this);">
+            <a class="dumper-name">%s</a> <em class="dumper-type">res</em>
+            %s<strong class="dumper-resource">%s</strong>
             </div></li>';
 
-        $html = sprintf($html, $name, Krumo::get_separator(), get_resource_type($data));
+        $html = sprintf($html, $name, Dumper::get_separator(), get_resource_type($data));
 
         echo $html;
 
@@ -1279,13 +1328,13 @@ class Krumo {
             $value = "TRUE";
         }
 
-        $html = '<li class="krumo-child">
-            <div class="krumo-element" onMouseOver="krumo.over(this);" onMouseOut="krumo.out(this);">
-            <a class="krumo-name">%s</a> <em class="krumo-type">Boolean</em>
-            %s<strong class="krumo-boolean">%s</strong>
+        $html = '<li class="dumper-child">
+            <div class="dumper-element" onMouseOver="dumper.over(this);" onMouseOut="dumper.out(this);">
+            <a class="dumper-name">%s</a> <em class="dumper-type">bool</em>
+            %s<strong class="dumper-boolean">%s</strong>
             </div></li>';
 
-        $html = sprintf($html, $name, Krumo::get_separator(), $value);
+        $html = sprintf($html, $name, Dumper::get_separator(), $value);
 
         echo $html;
 
@@ -1302,14 +1351,14 @@ class Krumo {
      */
     private static function _integer($data, $name)
     {
-        print "<li class=\"krumo-child\">";
-        print "<div class=\"krumo-element\" onMouseOver=\"krumo.over(this);\" onMouseOut=\"krumo.out(this);\">";
-        print "<a class=\"krumo-name\">$name</a> <em class=\"krumo-type\">Integer</em> ";
-        print Krumo::get_separator() . " <strong class=\"krumo-integer\">$data</strong>";
+        print "<li class=\"dumper-child\">";
+        print "<div class=\"dumper-element\" onMouseOver=\"dumper.over(this);\" onMouseOut=\"dumper.out(this);\">";
+        print "<a class=\"dumper-name\">$name</a> <em class=\"dumper-type\">int</em> ";
+        print Dumper::get_separator() . " <strong class=\"dumper-integer\">$data</strong>";
 
-        $ut = Krumo::is_datetime($name, $data);
+        $ut = Dumper::is_datetime($name, $data);
         if ($ut) {
-            print " ~ <strong class=\"krumo-datetime\">$ut</strong>";
+            print " ~ <strong class=\"dumper-datetime\">$ut</strong>";
         }
 
         print "</div></li>";
@@ -1326,14 +1375,14 @@ class Krumo {
      */
     private static function _float($data, $name)
     {
-        print "<li class=\"krumo-child\">";
-        print "<div class=\"krumo-element\" onMouseOver=\"krumo.over(this);\" onMouseOut=\"krumo.out(this);\">";
-        print "<a class=\"krumo-name\">$name</a> <em class=\"krumo-type\">Float</em> ";
-        print Krumo::get_separator() . " <strong class=\"krumo-float\">$data</strong>";
+        print "<li class=\"dumper-child\">";
+        print "<div class=\"dumper-element\" onMouseOver=\"dumper.over(this);\" onMouseOut=\"dumper.out(this);\">";
+        print "<a class=\"dumper-name\">$name</a> <em class=\"dumper-type\">float</em> ";
+        print Dumper::get_separator() . " <strong class=\"dumper-float\">$data</strong>";
 
-        $ut = Krumo::is_datetime($name,$data);
+        $ut = Dumper::is_datetime($name,$data);
         if ($ut) {
-            print " ~ <strong class=\"krumo-datetime\">$ut</strong>";
+            print " ~ <strong class=\"dumper-datetime\">$ut</strong>";
         }
 
         print "</div></li>";
@@ -1342,7 +1391,7 @@ class Krumo {
     public static function get_icon($name,$title)
     {
         $path = dirname(__FILE__) . "/icons/$name.png";
-        $rel  = Krumo::calculate_relative_path($path);
+        $rel  = Dumper::calculate_relative_path($path);
 
         $ret = "<img style=\"padding: 0 2px 0 2px\" src=\"$rel\" title=\"$title\" alt=\"name\" />";
 
@@ -1350,13 +1399,13 @@ class Krumo {
     }
 
     /**
-      * Get the separator to use for separating 'key' / 'value' pairs. Defaults to ' => '
-      *
-      * @return string
-      */
+     * Get the separator to use for separating 'key' / 'value' pairs. Defaults to ' => '
+     *
+     * @return string
+     */
     public static function get_separator()
     {
-        $separator = Krumo::_config('display', 'separator', " =&gt; ");
+        $separator = Dumper::_config('display', 'separator', " =&gt; ");
 
         return $separator;
     }
@@ -1384,7 +1433,7 @@ class Krumo {
      */
     private static function _string($data, $name)
     {
-        $collapsed = Krumo::_isCollapsed(self::$_level, 1);
+        $collapsed = Dumper::_isCollapsed(self::$_level, 1);
 
         if ($collapsed) {
             $collapse_style = 'style="display: none;"';
@@ -1397,7 +1446,7 @@ class Krumo {
         $_ = $data;
 
         // Get the truncate length from the config, or default to 100
-        $truncate_length = Krumo::_config('display', 'truncate_length', 100);
+        $truncate_length = Dumper::_config('display', 'truncate_length', 100);
 
         if (strLen($data) > $truncate_length ) {
             $_ = substr($data, 0, $truncate_length - 1);
@@ -1407,65 +1456,112 @@ class Krumo {
         $expand_class = '';
         if ($_extra) { $expand_class = 'krumo-expand'; }
 
-        print "<li class=\"krumo-child\">";
-        print "<div class=\"krumo-element $expand_class\" ";
+        print "<li class=\"dumper-child\">";
+        print "<div class=\"dumper-element $expand_class\" ";
         if ($_extra) {
-            print " onClick=\"krumo.toggle(this);\" ";
+            print " onClick=\"dumper.toggle(this);\" ";
         }
-        print "onMouseOver=\"krumo.over(this);\" onMouseOut=\"krumo.out(this);\">\n";
+        print "onMouseOver=\"dumper.over(this);\" onMouseOut=\"dumper.out(this);\">\n";
 
-        print "<a class=\"krumo-name\">$name</a> ";
-        print "<em class=\"krumo-type\">String(<strong class=\"krumo-string-length\">" . strlen($data) . "</strong>)</em> ";
-        print Krumo::get_separator() . " <strong class=\"krumo-string\">" . htmlspecialchars($_);
+        print "<a class=\"dumper-name\">$name</a> ";
+        print "<em class=\"dumper-type\">str(<strong class=\"dumper-string-length\">" . strlen($data) . "</strong>)</em> ";
+        print Dumper::get_separator() . " <strong class=\"dumper-string\">" . htmlspecialchars($_);
         // This has to go AFTER the htmlspecialchars
         if ($_extra) {
             print "&hellip;";
         }
         print "</strong>";
 
-        $ut = Krumo::is_datetime($name, $data);
+        $ut = Dumper::is_datetime($name, $data);
         if ($ut) {
-            print " ~ <strong class=\"krumo-datetime\">$ut</strong>";
+            print " ~ <strong class=\"dumper-datetime\">$ut</strong>";
         }
 
         // callback
         if (is_callable($data)) {
-            print "<span class=\"krumo-callback\"> | ";
-            print "(<em class=\"krumo-type\">Callback</em>) <strong class=\"krumo-string\">" . htmlSpecialChars($_) . "()</strong></span>";
+            print "<span class=\"dumper-callback\"> | ";
+            print "(<em class=\"dumper-type\">Callback</em>) <strong class=\"dumper-string\">" . htmlSpecialChars($_) . "()</strong></span>";
         }
 
         print "</div>";
 
         if ($_extra) {
-            print "<div class=\"krumo-nest\" $collapse_style>";
-            print "<ul class=\"krumo-node\">";
-            print "<li class=\"krumo-child\"> <div class=\"krumo-preview\">" . htmlSpecialChars($data) . "</div></li>";
+            print "<div class=\"dumper-nest\" $collapse_style>";
+            print "<ul class=\"dumper-node\">";
+            print "<li class=\"dumper-child\"> <div class=\"dumper-preview\">" . htmlSpecialChars($data) . "</div></li>";
             print "</ul></div>";
         }
 
         print "</li>";
     }
 
+    /**
+     * Trims the given string to a particular length. Does plain trimming.
+     *
+     * @param string $str Input string
+     * @param int $length Desired length
+     * @return string
+     */
+    private static function trimString($str, $length = 40)
+    {
+        if (getStringLength($str) > $length) {
+            $str = mb_substr($str, 0, $length, "UTF-8");
+            $str .= '…';
+        }
+
+        return $str;
+    }
+
+    /**
+     * Return length of longest common prefix in an array of strings.
+     *
+     * @see http://stackoverflow.com/questions/1336207/finding-common-prefix-of-array-of-strings
+     * @param array $array
+     * @return string
+     */
+    private static function commonPrefix($array) {
+        if(count($array) < 2) {
+            return strlen($array[0]); // 1 element: trivial case
+        }
+        $len = max(array_map('strlen', $array)); // initial upper limit: max length of all strings.
+        $prevval = reset($array);
+        while(($newval = next($array)) !== FALSE) {
+            for($j = 0 ; $j < $len ; $j += 1) {
+                if($newval[$j] != $prevval[$j]) {
+                    $len = $j;
+                }
+            }
+            $prevval = $newval;
+        }
+
+        return substr($array[0], 0, $len);
+    }
+
 }
+
+/**
+ * Below are some functions kept here for backwards compatibility. They are deprecated, and will be phased out, eventually
+ */
+
+// Make sure old '\Dumper::dump()' calls will keep working for the time being..
+class_alias('Dumper', 'Krumo');
 
 
 /**
-* Alias of {@link Krumo::dump()}
-*
-* @param mixed $data,...
-*
-* @see Krumo::dump()
-*/
+ * Alias of {@link Dumper::dump()}
+ *
+ * @param mixed $data,...
+ *
+ * @see Dumper::dump()
+ */
 function krumo($data, $capture = null)
 {
     if ($capture) {
-        $result = call_user_func(array('krumo', 'dump'), $data, KRUMO_CAPTURE);
+        $result = call_user_func(array('krumo', 'dump'), $data, DUMPER_CAPTURE);
         return $result;
     } else {
         call_user_func(array('krumo', 'dump'), $data);
     }
-
-
 
 }
 

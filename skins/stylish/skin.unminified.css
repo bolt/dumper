@@ -1,39 +1,39 @@
-ul.krumo-node, #content ul.krumo-node li {
+ul.dumper-node, #content ul.dumper-node li {
     margin: 0;
     padding: 0;
 }
-ul.krumo-node ul {
+ul.dumper-node ul {
     padding-left: 18px;
 }
 
-div.krumo-root {
+div.dumper-root {
     border: solid 1px #E8E8E8;
     border-radius: 3px;
     padding: 4px;
     margin: .5em 0;
-    background-color: #F8F8F8;    
+    background-color: #F8F8F8;
 }
 
-div.krumo-root * {
+div.dumper-root * {
     font: 13px/16px "Helvetica Neue", Helvetica, Verdana, Arial, sans-serif;
     /* Menlo, Consolas, Inconsolata, "Andale Mono", "Courier New", monospace; */
     font-weight: normal;
     padding: 0;
-    margin: 0;   
-    color: #666; 
+    margin: 0;
+    color: #666;
 }
 
-li.krumo-child {
+li.dumper-child {
     display: block;
     list-style: none;
     overflow: hidden;
 }
 
-ul.krumo-node ul li.krumo-child {
+ul.dumper-node ul li.dumper-child {
     background: rgba(0, 0, 0, 0.03);
 }
 
-div.krumo-element {
+div.dumper-element {
     cursor: default;
     line-height: 22px;
     display: block;
@@ -44,13 +44,13 @@ div.krumo-element {
     padding-left: 18px;
 }
 
-a.krumo-name {
+a.dumper-name {
     color: #284F76;
     font-weight: bold;
-    text-decoration: none;    
+    text-decoration: none;
 }
 
-a.krumo-name big {
+a.dumper-name big {
     font: 700 20pt Georgia;
     line-height: 14px;
     position: relative;
@@ -58,25 +58,25 @@ a.krumo-name big {
     left: -2px;
 }
 
-ul.krumo-node div.krumo-expand {
+ul.dumper-node div.dumper-expand {
     background-image: url(data:image/gif;base64,R0lGODlhCQAJALMAAP///wAAAP///wAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACH5BAEAAAAALAAAAAAJAAkAAAQTEIAna33USpwt79vncRpZgpcGRAA7);
     cursor: pointer;
 }
 
-ul.krumo-node div.krumo-opened {
+ul.dumper-node div.dumper-opened {
     background-image: url(data:image/gif;base64,R0lGODlhCQAJALMAAP///wAAAP///wAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACH5BAEAAAAALAAAAAAJAAkAAAQQEMhJ63w4Z6C37JUXWmQJRAA7);
 }
 
-ul.krumo-node ul div.krumo-expand {
-    border-left: 2px solid #CCC;     
+ul.dumper-node ul div.dumper-expand {
+    border-left: 2px solid #CCC;
 }
-ul.krumo-node ul div.krumo-opened,
-ul.krumo-node ul div.krumo-opened ~ div {
-    border-left: 2px solid #CCC;    
+ul.dumper-node ul div.dumper-opened,
+ul.dumper-node ul div.dumper-opened ~ div {
+    border-left: 2px solid #CCC;
 }
 
-div.krumo-preview {
-    font: 12px/16px Menlo, Consolas, Inconsolata, "Andale Mono", "Courier New", monospace; 
+div.dumper-preview {
+    font: 12px/16px Menlo, Consolas, Inconsolata, "Andale Mono", "Courier New", monospace;
     font-weight: normal;
     color: #333;
     padding: 5px 5px;
@@ -85,13 +85,13 @@ div.krumo-preview {
     word-break:break-all;
 }
 
-ul.krumo-node ul div.krumo-expand.krumo-hover,
-ul.krumo-node ul div.krumo-hover ~ div {
-    border-left: 2px solid #888;        
+ul.dumper-node ul div.dumper-expand.dumper-hover,
+ul.dumper-node ul div.dumper-hover ~ div {
+    border-left: 2px solid #888;
     background-color: rgba(88, 139, 255, 0.05) !important;
 }
 
-li.krumo-footnote {
+li.dumper-footnote {
     background: #fff;
     padding: 2px 5px;
     list-style: none;
@@ -99,13 +99,13 @@ li.krumo-footnote {
     margin-top: 2px;
     cursor: default;
 }
-* html li.krumo-footnote {
+* html li.dumper-footnote {
     line-height: 13px;
 }
-.krumo-version {
+.dumper-version {
     float: right;
 }
-strong.krumo-version-number {
+strong.dumper-version-number {
     font-family: "Helvetica Neue", Helvetica, Verdana, Arial, sans-serif;
     font-weight: 700;
     font-size: 11px;
@@ -115,61 +115,61 @@ strong.krumo-version-number {
     display: inline;
     margin-right: 3px;
 }
-li.krumo-footnote a {
+li.dumper-footnote a {
     font-family: "Helvetica Neue", Helvetica, Verdana, Arial, sans-serif;
     font-weight: 700;
     font-size: 10px;
     color: #434343;
     text-decoration: none;
 }
-li.krumo-footnote a:hover {
+li.dumper-footnote a:hover {
     color: #000;
 }
-li.krumo-footnote span.krumo-call {
+li.dumper-footnote span.dumper-call {
     font-family: "Helvetica Neue", Helvetica, Verdana, Arial, sans-serif;
     font-weight: 400;
     font-size: 11px;
     position: relative;
     top: 1px;
 }
-li.krumo-footnote span.krumo-call code {
+li.dumper-footnote span.dumper-call code {
     font-weight: 700;
 }
 
-div.krumo-title {
+div.dumper-title {
     font-family: "Helvetica Neue", Helvetica, Verdana, Arial, sans-serif;
     font-weight: 400;
     font-size: 11px;
     cursor: default;
 }
 
-strong.krumo-array-length, 
-strong.krumo-string-length,
-em.krumo-type {
+strong.dumper-array-length,
+strong.dumper-string-length,
+em.dumper-type {
     font-style: italic;
 }
 
-strong.krumo-string, 
-strong.krumo-integer {
+strong.dumper-string,
+strong.dumper-integer {
     color: #000;
 
 }
 
-strong.krumo-boolean,
-strong.krumo-null {
+strong.dumper-boolean,
+strong.dumper-null {
     font: 13px/16px Menlo, Consolas, Inconsolata, "Andale Mono", "Courier New", monospace;
     font-weight: bold;
     color: #700;
 }
 
-strong.krumo-datetime,
-strong.krumo-sorted {
+strong.dumper-datetime,
+strong.dumper-sorted {
     font-family: "Helvetica Neue", Helvetica, Verdana, Arial, sans-serif;
     font-weight: bold;
     color: #700;
 }
 
-strong.krumo-class {
+strong.dumper-class {
     color: #000;
     font-weight: bold;
 }
