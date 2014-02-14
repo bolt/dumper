@@ -50,7 +50,7 @@ class Dumper {
      */
     public static function version()
     {
-        return '0.6.0';
+        return '0.7';
     }
 
 
