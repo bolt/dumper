@@ -1227,7 +1227,7 @@ class Dumper {
 
         // Setup the CSS classes depending on how many children there are
         if ($childCount > 0 && $collapsed ) {
-            $elementClasses = 'dumper-expand';
+            $elementClasses = ' dumper-expand';
         } elseif ($childCount > 0 && $traverse_this ) {
             $elementClasses = ' dumper-expand dumper-opened';
         } else {
