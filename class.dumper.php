@@ -1480,7 +1480,13 @@ class Dumper {
      */
     private static function trimString($str, $length = 40)
     {
-        if (getStringLength($str) > $length) {
+        if (function_exists('mb_strwidth')) {
+            $strlen =  mb_strwidth($str, 'UTF-8');
+        } else {
+            $strlen =  strlen($str);
+        }
+
+        if ($strlen > $length) {
             $str = mb_substr($str, 0, $length, "UTF-8");
             $str .= '…';
         }
